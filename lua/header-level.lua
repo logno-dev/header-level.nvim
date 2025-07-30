@@ -7,12 +7,14 @@ local config = {
 	enabled = true,
 	show_in_statusline = true,
 	show_virtual_text = false,
+	virtual_text_position = "eol", -- "eol", "right_align", "overlay", "fixed_corner"
 	update_events = { "CursorMoved", "CursorMovedI", "BufEnter" },
 }
 
 -- Global state
 local header_level = ""
 local namespace_id = vim.api.nvim_create_namespace("markdown_header_level")
+local floating_win_id = nil
 
 -- Function to find the current header level
 local function get_current_header_level()
@@ -26,7 +28,7 @@ local function get_current_header_level()
 
 		if header_match then
 			local level = #header_match
-			return "Header Level " .. level, level
+			return "H" .. level, level
 		end
 	end
 
@@ -47,15 +49,51 @@ local function update_header_display()
 
 	-- Show as virtual text if enabled
 	if config.show_virtual_text then
-		-- Clear existing virtual text
+		-- Clear existing virtual text and floating window
 		vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
+		if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
+			vim.api.nvim_win_close(floating_win_id, true)
+			floating_win_id = nil
+		end
 
 		if text ~= "" then
-			local current_line = vim.api.nvim_win_get_cursor(0)[1] - 1
-			vim.api.nvim_buf_set_extmark(0, namespace_id, current_line, 0, {
-				virt_text = { { " " .. text, "Comment" } },
-				virt_text_pos = "eol",
-			})
+			if config.virtual_text_position == "fixed_corner" then
+				-- Create floating window in top-right corner
+				local buf = vim.api.nvim_create_buf(false, true)
+				vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
+				
+				local width = #text
+				local height = 1
+				local win_width = vim.api.nvim_win_get_width(0)
+				
+				floating_win_id = vim.api.nvim_open_win(buf, false, {
+					relative = "win",
+					width = width,
+					height = height,
+					row = 0,
+					col = win_width - width - 1,
+					style = "minimal",
+					border = "none",
+					focusable = false,
+				})
+				
+				-- Set highlight
+				vim.api.nvim_win_set_option(floating_win_id, "winhl", "Normal:Comment")
+			else
+				-- Use regular virtual text
+				local current_line = vim.api.nvim_win_get_cursor(0)[1] - 1
+				local virt_text_opts = {
+					virt_text = { { " " .. text, "Comment" } },
+					virt_text_pos = config.virtual_text_position,
+				}
+				
+				-- Add overlay column if using overlay position
+				if config.virtual_text_position == "overlay" then
+					virt_text_opts.virt_text_win_col = vim.api.nvim_win_get_width(0) - #text - 5
+				end
+				
+				vim.api.nvim_buf_set_extmark(0, namespace_id, current_line, 0, virt_text_opts)
+			end
 		end
 	end
 
@@ -93,6 +131,10 @@ local function setup_autocommands()
 			header_level = ""
 			vim.g.markdown_header_level = ""
 			vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
+			if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
+				vim.api.nvim_win_close(floating_win_id, true)
+				floating_win_id = nil
+			end
 		end,
 	})
 end
@@ -115,6 +157,10 @@ function M.toggle()
 		header_level = ""
 		vim.g.markdown_header_level = ""
 		vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
+		if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
+			vim.api.nvim_win_close(floating_win_id, true)
+			floating_win_id = nil
+		end
 		vim.cmd("redrawstatus")
 	end
 end

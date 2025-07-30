@@ -6,7 +6,7 @@ A lightweight Neovim plugin that displays the current markdown header level in y
 
 - 🎯 Shows the current header level based on cursor position
 - 📊 Statusline integration support
-- 👻 Optional virtual text display
+- 👻 Optional virtual text display with multiple positioning options
 - ⚡ Automatic updates on cursor movement
 - 🎛️ Configurable update events
 - 🔄 Toggle functionality
@@ -72,6 +72,7 @@ require("header-level").setup({
   enabled = true,
   show_in_statusline = true,
   show_virtual_text = false,
+  virtual_text_position = "eol", -- "eol", "right_align", "overlay", "fixed_corner"
   update_events = { "CursorMoved", "CursorMovedI", "BufEnter" },
 })
 ```
@@ -82,7 +83,8 @@ require("header-level").setup({
 |--------|------|---------|-------------|
 | `enabled` | boolean | `true` | Enable/disable the plugin |
 | `show_in_statusline` | boolean | `true` | Make header level available for statusline |
-| `show_virtual_text` | boolean | `false` | Show header level as virtual text at end of line |
+| `show_virtual_text` | boolean | `false` | Show header level as virtual text |
+| `virtual_text_position` | string | `"eol"` | Virtual text position: `"eol"` (end of line), `"right_align"` (right-aligned), `"overlay"` (overlay at column), `"fixed_corner"` (floating window in top-right) |
 | `update_events` | table | `{ "CursorMoved", "CursorMovedI", "BufEnter" }` | Events that trigger header level updates |
 
 ## Statusline Integration
@@ -177,7 +179,7 @@ More content...
 Your cursor is here
 ```
 
-When your cursor is on "Your cursor is here", the plugin will display "Header Level 3".
+When your cursor is on "Your cursor is here", the plugin will display "H3".
 
 ## Requirements
 
