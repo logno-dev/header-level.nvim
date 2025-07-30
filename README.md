@@ -1,15 +1,17 @@
 # header-level.nvim
 
-A lightweight Neovim plugin that displays the current markdown header level in your statusline or as virtual text.
+A lightweight Neovim plugin that displays the current markdown header level in your statusline, as virtual text, or shows a complete document outline tree.
 
 ## Features
 
 - 🎯 Shows the current header level based on cursor position
 - 📊 Statusline integration support
 - 👻 Optional virtual text display with multiple positioning options
+- 🌳 **NEW**: Header tree outline in top-right corner showing document structure
+- 🎨 Color-coded header levels with current section highlighting
 - ⚡ Automatic updates on cursor movement
 - 🎛️ Configurable update events
-- 🔄 Toggle functionality
+- 🔄 Toggle functionality for all display modes
 
 ## Installation
 
@@ -63,6 +65,38 @@ Clone the repository to your Neovim configuration directory:
 git clone https://github.com/logno-dev/header-level.nvim ~/.config/nvim/pack/plugins/start/header-level.nvim
 ```
 
+## Display Modes
+
+The plugin offers three independent display modes that can be used separately or together:
+
+### 1. Statusline Integration (`show_in_statusline`)
+Shows the current header level (e.g., "H2") in your statusline. Always enabled by default.
+
+### 2. Virtual Text (`show_virtual_text`) 
+Shows the current header level as virtual text near your cursor with various positioning options.
+
+### 3. Header Tree Outline (`show_header_tree`)
+Shows a complete document outline in the top-right corner with:
+- Hierarchical structure using dashes (-, --, ---, etc.)
+- Color-coded header levels
+- Current section highlighting
+- Real-time updates as you navigate
+
+**Example tree display:**
+```
+Main Title
+-Secondary
+--Sub Category 1  ← highlighted if cursor is here
+--Sub Category 2
+-Another Section
+```
+
+You can enable any combination of these modes. For example:
+- **Minimal**: Only statusline (`show_in_statusline = true`)
+- **Current focus**: Statusline + virtual text
+- **Full overview**: All three modes enabled
+- **Outline only**: Just the header tree for document navigation
+
 ## Configuration
 
 ### Default Configuration
@@ -72,6 +106,7 @@ require("header-level").setup({
   enabled = true,
   show_in_statusline = true,
   show_virtual_text = false,
+  show_header_tree = false, -- Show document outline tree in top-right corner
   virtual_text_position = "eol", -- "eol", "right_align", "overlay", "fixed_corner"
   inverted_colors = true, -- Use colored backgrounds with dark foregrounds
   update_events = { "CursorMoved", "CursorMovedI", "BufEnter" },
@@ -93,6 +128,7 @@ require("header-level").setup({
 | `enabled` | boolean | `true` | Enable/disable the plugin |
 | `show_in_statusline` | boolean | `true` | Make header level available for statusline |
 | `show_virtual_text` | boolean | `false` | Show header level as virtual text |
+| `show_header_tree` | boolean | `false` | Show document outline tree in top-right corner |
 | `virtual_text_position` | string | `"eol"` | Virtual text position: `"eol"` (end of line), `"right_align"` (right-aligned), `"overlay"` (overlay at column), `"fixed_corner"` (floating window in top-right) |
 | `inverted_colors` | boolean | `true` | Use colored backgrounds with dark foregrounds instead of colored foregrounds |
 | `colors` | table | See default | Color scheme for each header level using hex color codes |
@@ -174,6 +210,7 @@ set statusline+=%{v:lua.vim.g.markdown_header_level}
 | Command | Description |
 |---------|-------------|
 | `:MarkdownHeaderToggle` | Toggle the plugin on/off |
+| `:MarkdownHeaderTreeToggle` | Toggle the header tree outline display |
 | `:MarkdownHeaderLevel` | Print the current header level |
 
 ## API
@@ -186,6 +223,9 @@ local level = header_level.get_header_level()
 
 -- Toggle plugin
 header_level.toggle()
+
+-- Toggle header tree display
+header_level.toggle_tree()
 ```
 
 ## How It Works

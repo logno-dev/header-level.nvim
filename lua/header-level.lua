@@ -7,6 +7,7 @@ local config = {
 	enabled = true,
 	show_in_statusline = true,
 	show_virtual_text = false,
+	show_header_tree = false, -- Show header tree in top right corner
 	virtual_text_position = "eol", -- "eol", "right_align", "overlay", "fixed_corner"
 	update_events = { "CursorMoved", "CursorMovedI", "BufEnter" },
 	inverted_colors = true, -- Use colored backgrounds with dark foregrounds
@@ -24,6 +25,8 @@ local config = {
 local header_level = ""
 local namespace_id = vim.api.nvim_create_namespace("markdown_header_level")
 local floating_win_id = nil
+local tree_win_id = nil
+local tree_buf_id = nil
 
 -- Setup custom highlight groups
 local function setup_highlights()
@@ -46,6 +49,13 @@ local function setup_highlights()
 			})
 		end
 	end
+	
+	-- Highlight for current section in tree
+	vim.api.nvim_set_hl(0, "MarkdownHeaderTreeCurrent", {
+		fg = "#ffffff",
+		bg = "#444444",
+		bold = true,
+	})
 end
 
 -- Function to get highlight group for header level
@@ -70,6 +80,148 @@ local function get_current_header_level()
 	end
 
 	return "", 0
+end
+
+-- Function to extract all headers from the document
+local function get_all_headers()
+	local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+	local headers = {}
+	
+	for i, line in ipairs(lines) do
+		local header_match, title = line:match("^(#+)%s+(.*)")
+		if header_match then
+			local level = #header_match
+			table.insert(headers, {
+				level = level,
+				title = title,
+				line_number = i,
+			})
+		end
+	end
+	
+	return headers
+end
+
+-- Function to build header tree display lines
+local function build_header_tree()
+	local headers = get_all_headers()
+	if #headers == 0 then
+		return {}
+	end
+	
+	local tree_lines = {}
+	local current_line = vim.api.nvim_win_get_cursor(0)[1]
+	local current_header_line = 0
+	
+	-- Find which header section we're currently in
+	for i = #headers, 1, -1 do
+		if headers[i].line_number <= current_line then
+			current_header_line = headers[i].line_number
+			break
+		end
+	end
+	
+	for _, header in ipairs(headers) do
+		local prefix = string.rep("-", header.level - 1)
+		local line_text = prefix .. header.title
+		local is_current = header.line_number == current_header_line
+		
+		table.insert(tree_lines, {
+			text = line_text,
+			level = header.level,
+			is_current = is_current,
+			line_number = header.line_number,
+		})
+	end
+	
+	return tree_lines
+end
+
+-- Function to update header tree display
+local function update_header_tree()
+	if not config.show_header_tree then
+		-- Close tree window if it exists
+		if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
+			vim.api.nvim_win_close(tree_win_id, true)
+			tree_win_id = nil
+		end
+		return
+	end
+	
+	local tree_lines = build_header_tree()
+	if #tree_lines == 0 then
+		-- Close tree window if no headers
+		if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
+			vim.api.nvim_win_close(tree_win_id, true)
+			tree_win_id = nil
+		end
+		return
+	end
+	
+	-- Create or reuse buffer
+	if not tree_buf_id or not vim.api.nvim_buf_is_valid(tree_buf_id) then
+		tree_buf_id = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_option(tree_buf_id, "buftype", "nofile")
+		vim.api.nvim_buf_set_option(tree_buf_id, "swapfile", false)
+	end
+	
+	-- Prepare lines and highlights
+	local display_lines = {}
+	local highlights = {}
+	
+	for i, line_info in ipairs(tree_lines) do
+		table.insert(display_lines, line_info.text)
+		
+		local hl_group = line_info.is_current and "MarkdownHeaderTreeCurrent" or get_header_highlight(line_info.level)
+		table.insert(highlights, {
+			line = i - 1,
+			col_start = 0,
+			col_end = #line_info.text,
+			hl_group = hl_group,
+		})
+	end
+	
+	-- Update buffer content
+	vim.api.nvim_buf_set_lines(tree_buf_id, 0, -1, false, display_lines)
+	
+	-- Calculate window dimensions
+	local max_width = 0
+	for _, line in ipairs(display_lines) do
+		max_width = math.max(max_width, #line)
+	end
+	
+	local height = math.min(#display_lines, 15) -- Max 15 lines
+	local width = math.min(max_width + 2, 50) -- Max 50 chars wide
+	local win_width = vim.api.nvim_win_get_width(0)
+	
+	-- Create or update window
+	if not tree_win_id or not vim.api.nvim_win_is_valid(tree_win_id) then
+		tree_win_id = vim.api.nvim_open_win(tree_buf_id, false, {
+			relative = "win",
+			width = width,
+			height = height,
+			row = 0,
+			col = win_width - width - 1,
+			style = "minimal",
+			border = "single",
+			focusable = false,
+		})
+	else
+		-- Update existing window size and position
+		vim.api.nvim_win_set_config(tree_win_id, {
+			relative = "win",
+			width = width,
+			height = height,
+			row = 0,
+			col = win_width - width - 1,
+		})
+	end
+	
+	-- Clear existing highlights and apply new ones
+	vim.api.nvim_buf_clear_namespace(tree_buf_id, namespace_id, 0, -1)
+	for _, hl in ipairs(highlights) do
+		vim.api.nvim_buf_add_highlight(tree_buf_id, namespace_id, hl.hl_group, hl.line, hl.col_start, hl.col_end)
+	end
 end
 
 -- Function to update the display
@@ -136,6 +288,9 @@ local function update_header_display()
 			end
 		end
 	end
+	
+	-- Update header tree
+	update_header_tree()
 
 	-- Trigger statusline update
 	vim.cmd("redrawstatus")
@@ -174,6 +329,10 @@ local function setup_autocommands()
 			if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
 				vim.api.nvim_win_close(floating_win_id, true)
 				floating_win_id = nil
+			end
+			if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
+				vim.api.nvim_win_close(tree_win_id, true)
+				tree_win_id = nil
 			end
 		end,
 	})
@@ -218,12 +377,22 @@ function M.toggle()
 			vim.api.nvim_win_close(floating_win_id, true)
 			floating_win_id = nil
 		end
+		if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
+			vim.api.nvim_win_close(tree_win_id, true)
+			tree_win_id = nil
+		end
 		vim.cmd("redrawstatus")
 	end
 end
 
+function M.toggle_tree()
+	config.show_header_tree = not config.show_header_tree
+	update_header_tree()
+end
+
 -- Commands
 vim.api.nvim_create_user_command("MarkdownHeaderToggle", M.toggle, {})
+vim.api.nvim_create_user_command("MarkdownHeaderTreeToggle", M.toggle_tree, {})
 vim.api.nvim_create_user_command("MarkdownHeaderLevel", function()
 	print(M.get_header_level())
 end, {})
