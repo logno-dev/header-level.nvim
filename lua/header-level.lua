@@ -9,12 +9,33 @@ local config = {
 	show_virtual_text = false,
 	virtual_text_position = "eol", -- "eol", "right_align", "overlay", "fixed_corner"
 	update_events = { "CursorMoved", "CursorMovedI", "BufEnter" },
+	colors = {
+		h1 = "DiagnosticError",   -- Red
+		h2 = "DiagnosticWarn",    -- Orange/Yellow
+		h3 = "DiagnosticInfo",    -- Blue
+		h4 = "DiagnosticHint",    -- Green/Cyan
+		h5 = "Comment",           -- Gray
+		h6 = "NonText",           -- Darker gray
+	},
 }
 
 -- Global state
 local header_level = ""
 local namespace_id = vim.api.nvim_create_namespace("markdown_header_level")
 local floating_win_id = nil
+
+-- Function to get highlight group for header level
+local function get_header_highlight(level)
+	local color_map = {
+		[1] = config.colors.h1,
+		[2] = config.colors.h2,
+		[3] = config.colors.h3,
+		[4] = config.colors.h4,
+		[5] = config.colors.h5,
+		[6] = config.colors.h6,
+	}
+	return color_map[level] or "Comment"
+end
 
 -- Function to find the current header level
 local function get_current_header_level()
@@ -57,6 +78,8 @@ local function update_header_display()
 		end
 
 		if text ~= "" then
+			local highlight = get_header_highlight(level)
+			
 			if config.virtual_text_position == "fixed_corner" then
 				-- Create floating window in top-right corner
 				local buf = vim.api.nvim_create_buf(false, true)
@@ -77,13 +100,13 @@ local function update_header_display()
 					focusable = false,
 				})
 				
-				-- Set highlight
-				vim.api.nvim_win_set_option(floating_win_id, "winhl", "Normal:Comment")
+				-- Set highlight with level-specific color
+				vim.api.nvim_win_set_option(floating_win_id, "winhl", "Normal:" .. highlight)
 			else
 				-- Use regular virtual text
 				local current_line = vim.api.nvim_win_get_cursor(0)[1] - 1
 				local virt_text_opts = {
-					virt_text = { { " " .. text, "Comment" } },
+					virt_text = { { " " .. text, highlight } },
 					virt_text_pos = config.virtual_text_position,
 				}
 				

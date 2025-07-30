@@ -74,6 +74,14 @@ require("header-level").setup({
   show_virtual_text = false,
   virtual_text_position = "eol", -- "eol", "right_align", "overlay", "fixed_corner"
   update_events = { "CursorMoved", "CursorMovedI", "BufEnter" },
+  colors = {
+    h1 = "DiagnosticError",   -- Red
+    h2 = "DiagnosticWarn",    -- Orange/Yellow
+    h3 = "DiagnosticInfo",    -- Blue
+    h4 = "DiagnosticHint",    -- Green/Cyan
+    h5 = "Comment",           -- Gray
+    h6 = "NonText",           -- Darker gray
+  },
 })
 ```
 
@@ -85,6 +93,7 @@ require("header-level").setup({
 | `show_in_statusline` | boolean | `true` | Make header level available for statusline |
 | `show_virtual_text` | boolean | `false` | Show header level as virtual text |
 | `virtual_text_position` | string | `"eol"` | Virtual text position: `"eol"` (end of line), `"right_align"` (right-aligned), `"overlay"` (overlay at column), `"fixed_corner"` (floating window in top-right) |
+| `colors` | table | See default | Color scheme for each header level using highlight group names |
 | `update_events` | table | `{ "CursorMoved", "CursorMovedI", "BufEnter" }` | Events that trigger header level updates |
 
 ## Statusline Integration
