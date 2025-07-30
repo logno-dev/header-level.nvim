@@ -203,12 +203,12 @@ local function update_header_tree()
 			row = 0,
 			col = win_width - width - 1,
 			style = "minimal",
-			border = "single",
+			border = "none",
 			focusable = false,
 		})
 		
 		-- Set transparent background
-		vim.api.nvim_win_set_option(tree_win_id, "winhl", "Normal:Normal,FloatBorder:Normal")
+		vim.api.nvim_win_set_option(tree_win_id, "winhl", "Normal:Normal")
 	else
 		-- Update existing window size and position
 		vim.api.nvim_win_set_config(tree_win_id, {
