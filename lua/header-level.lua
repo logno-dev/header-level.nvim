@@ -9,13 +9,14 @@ local config = {
 	show_virtual_text = false,
 	virtual_text_position = "eol", -- "eol", "right_align", "overlay", "fixed_corner"
 	update_events = { "CursorMoved", "CursorMovedI", "BufEnter" },
+	inverted_colors = true, -- Use colored backgrounds with dark foregrounds
 	colors = {
-		h1 = "DiagnosticError",   -- Red
-		h2 = "DiagnosticWarn",    -- Orange/Yellow
-		h3 = "DiagnosticInfo",    -- Blue
-		h4 = "DiagnosticHint",    -- Green/Cyan
-		h5 = "Comment",           -- Gray
-		h6 = "NonText",           -- Darker gray
+		h1 = "#9d4edd", -- Purple
+		h2 = "#f77f00", -- Orange
+		h3 = "#0077be", -- Blue
+		h4 = "#06d6a0", -- Teal/Cyan
+		h5 = "#6c757d", -- Gray
+		h6 = "#495057", -- Darker gray
 	},
 }
 
@@ -24,17 +25,32 @@ local header_level = ""
 local namespace_id = vim.api.nvim_create_namespace("markdown_header_level")
 local floating_win_id = nil
 
+-- Setup custom highlight groups
+local function setup_highlights()
+	for i = 1, 6 do
+		local hl_name = "MarkdownHeaderLevel" .. i
+		local color = config.colors["h" .. i]
+		
+		if config.inverted_colors then
+			-- Dark foreground with colored background
+			vim.api.nvim_set_hl(0, hl_name, {
+				fg = "#000000",
+				bg = color,
+				bold = true,
+			})
+		else
+			-- Colored foreground with default background
+			vim.api.nvim_set_hl(0, hl_name, {
+				fg = color,
+				bold = true,
+			})
+		end
+	end
+end
+
 -- Function to get highlight group for header level
 local function get_header_highlight(level)
-	local color_map = {
-		[1] = config.colors.h1,
-		[2] = config.colors.h2,
-		[3] = config.colors.h3,
-		[4] = config.colors.h4,
-		[5] = config.colors.h5,
-		[6] = config.colors.h6,
-	}
-	return color_map[level] or "Comment"
+	return "MarkdownHeaderLevel" .. (level or 1)
 end
 
 -- Function to find the current header level
@@ -67,6 +83,7 @@ local function update_header_display()
 
 	-- Update statusline (will be picked up by statusline if configured)
 	vim.g.markdown_header_level = text
+	vim.g.markdown_header_level_hl = level > 0 and get_header_highlight(level) or ""
 
 	-- Show as virtual text if enabled
 	if config.show_virtual_text then
@@ -165,11 +182,28 @@ end
 -- Public API
 function M.setup(opts)
 	config = vim.tbl_deep_extend("force", config, opts or {})
+	setup_highlights()
 	setup_autocommands()
 end
 
 function M.get_header_level()
 	return header_level
+end
+
+-- Get header level with color information for statusline integration
+function M.get_colored_header_level()
+	if header_level == "" then
+		return ""
+	end
+	
+	local _, level = get_current_header_level()
+	local hl_group = get_header_highlight(level)
+	
+	return {
+		text = header_level,
+		highlight = hl_group,
+		level = level,
+	}
 end
 
 function M.toggle()
