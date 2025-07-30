@@ -73,14 +73,15 @@ require("header-level").setup({
   show_in_statusline = true,
   show_virtual_text = false,
   virtual_text_position = "eol", -- "eol", "right_align", "overlay", "fixed_corner"
+  inverted_colors = true, -- Use colored backgrounds with dark foregrounds
   update_events = { "CursorMoved", "CursorMovedI", "BufEnter" },
   colors = {
-    h1 = "DiagnosticError",   -- Red
-    h2 = "DiagnosticWarn",    -- Orange/Yellow
-    h3 = "DiagnosticInfo",    -- Blue
-    h4 = "DiagnosticHint",    -- Green/Cyan
-    h5 = "Comment",           -- Gray
-    h6 = "NonText",           -- Darker gray
+    h1 = "#9d4edd", -- Purple
+    h2 = "#f77f00", -- Orange
+    h3 = "#0077be", -- Blue
+    h4 = "#06d6a0", -- Teal/Cyan
+    h5 = "#6c757d", -- Gray
+    h6 = "#495057", -- Darker gray
   },
 })
 ```
@@ -93,7 +94,8 @@ require("header-level").setup({
 | `show_in_statusline` | boolean | `true` | Make header level available for statusline |
 | `show_virtual_text` | boolean | `false` | Show header level as virtual text |
 | `virtual_text_position` | string | `"eol"` | Virtual text position: `"eol"` (end of line), `"right_align"` (right-aligned), `"overlay"` (overlay at column), `"fixed_corner"` (floating window in top-right) |
-| `colors` | table | See default | Color scheme for each header level using highlight group names |
+| `inverted_colors` | boolean | `true` | Use colored backgrounds with dark foregrounds instead of colored foregrounds |
+| `colors` | table | See default | Color scheme for each header level using hex color codes |
 | `update_events` | table | `{ "CursorMoved", "CursorMovedI", "BufEnter" }` | Events that trigger header level updates |
 
 ## Statusline Integration
@@ -102,6 +104,7 @@ The plugin sets the global variable `vim.g.markdown_header_level` which you can 
 
 ### lualine.nvim
 
+Basic integration:
 ```lua
 require('lualine').setup({
   sections = {
@@ -110,6 +113,30 @@ require('lualine').setup({
       {
         function()
           return vim.g.markdown_header_level or ''
+        end,
+        cond = function()
+          return vim.bo.filetype == 'markdown' and vim.g.markdown_header_level ~= ''
+        end,
+      }
+    }
+  }
+})
+```
+
+With colors (using the plugin's color scheme):
+```lua
+require('lualine').setup({
+  sections = {
+    lualine_c = {
+      'filename',
+      {
+        function()
+          local header_info = require('header-level').get_colored_header_level()
+          return header_info.text or ''
+        end,
+        color = function()
+          local header_info = require('header-level').get_colored_header_level()
+          return header_info.highlight and { fg = vim.g.markdown_header_level_hl } or nil
         end,
         cond = function()
           return vim.bo.filetype == 'markdown' and vim.g.markdown_header_level ~= ''
