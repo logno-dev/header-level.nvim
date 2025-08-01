@@ -277,17 +277,35 @@ local function update_header_display()
 			else
 				-- Use regular virtual text
 				local current_line = vim.api.nvim_win_get_cursor(0)[1] - 1
-				local virt_text_opts = {
-					virt_text = { { " " .. text, highlight } },
-					virt_text_pos = config.virtual_text_position,
-				}
+				local line_count = vim.api.nvim_buf_line_count(0)
 				
-				-- Add overlay column if using overlay position
-				if config.virtual_text_position == "overlay" then
-					virt_text_opts.virt_text_win_col = vim.api.nvim_win_get_width(0) - #text - 5
+				-- Ensure current_line is within valid range
+				if current_line >= 0 and current_line < line_count then
+					local current_line_text = vim.api.nvim_buf_get_lines(0, current_line, current_line + 1, false)[1] or ""
+					local line_length = #current_line_text
+					
+					local virt_text_opts = {
+						virt_text = { { " " .. text, highlight } },
+						virt_text_pos = config.virtual_text_position,
+					}
+					
+					-- Add overlay column if using overlay position
+					if config.virtual_text_position == "overlay" then
+						local win_width = vim.api.nvim_win_get_width(0)
+						local text_width = #text + 1 -- +1 for the space
+						local overlay_col = math.max(0, win_width - text_width - 5)
+						virt_text_opts.virt_text_win_col = overlay_col
+					end
+					
+					-- Safely set extmark with bounds checking
+					local ok, err = pcall(vim.api.nvim_buf_set_extmark, 0, namespace_id, current_line, 0, virt_text_opts)
+					if not ok then
+						-- Fallback to end-of-line position if overlay fails
+						virt_text_opts.virt_text_pos = "eol"
+						virt_text_opts.virt_text_win_col = nil
+						pcall(vim.api.nvim_buf_set_extmark, 0, namespace_id, current_line, 0, virt_text_opts)
+					end
 				end
-				
-				vim.api.nvim_buf_set_extmark(0, namespace_id, current_line, 0, virt_text_opts)
 			end
 		end
 	end
