@@ -179,6 +179,9 @@ local function update_header_tree()
 	local total_lines = #tree_lines
 	local padding = 3
 	
+	-- DEBUG: Print to check if new code is running
+	print("SCROLLING CODE ACTIVE - Total lines:", total_lines, "Max height:", max_display_height)
+	
 	local start_line, end_line, display_height
 	
 	if total_lines <= max_display_height then
