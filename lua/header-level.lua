@@ -165,16 +165,66 @@ local function update_header_tree()
 		vim.api.nvim_buf_set_option(tree_buf_id, "swapfile", false)
 	end
 	
-	-- Prepare lines and highlights
+	-- Find current header index for scrolling
+	local current_header_idx = 1
+	for i, line_info in ipairs(tree_lines) do
+		if line_info.is_current then
+			current_header_idx = i
+			break
+		end
+	end
+	
+	-- Calculate scrolling with 3-line padding
+	local max_display_height = math.min(vim.api.nvim_win_get_height(0) - 2, 20) -- Limit to window height or 20 lines
+	local total_lines = #tree_lines
+	local padding = 3
+	
+	local start_line, end_line, display_height
+	
+	if total_lines <= max_display_height then
+		-- Show all lines if they fit
+		start_line = 1
+		end_line = total_lines
+		display_height = total_lines
+	else
+		-- Calculate scroll position to keep current header centered with padding
+		local target_position = current_header_idx
+		local half_display = math.floor(max_display_height / 2)
+		
+		-- Try to center current header
+		start_line = math.max(1, target_position - half_display)
+		end_line = math.min(total_lines, start_line + max_display_height - 1)
+		
+		-- Adjust if we're at the end
+		if end_line == total_lines then
+			start_line = math.max(1, total_lines - max_display_height + 1)
+		end
+		
+		-- Ensure current header has padding (at least 3 lines from top/bottom when possible)
+		if target_position - start_line < padding and start_line > 1 then
+			start_line = math.max(1, target_position - padding)
+			end_line = math.min(total_lines, start_line + max_display_height - 1)
+		end
+		
+		if end_line - target_position < padding and end_line < total_lines then
+			end_line = math.min(total_lines, target_position + padding)
+			start_line = math.max(1, end_line - max_display_height + 1)
+		end
+		
+		display_height = end_line - start_line + 1
+	end
+	
+	-- Prepare visible lines and highlights
 	local display_lines = {}
 	local highlights = {}
 	
-	for i, line_info in ipairs(tree_lines) do
+	for i = start_line, end_line do
+		local line_info = tree_lines[i]
 		table.insert(display_lines, line_info.text)
 		
 		local hl_group = line_info.is_current and "MarkdownHeaderTreeCurrent" or get_header_highlight(line_info.level)
 		table.insert(highlights, {
-			line = i - 1,
+			line = #display_lines - 1, -- Adjust for 0-based indexing in display
 			col_start = 0,
 			col_end = #line_info.text,
 			hl_group = hl_group,
@@ -190,7 +240,6 @@ local function update_header_tree()
 		max_width = math.max(max_width, #line)
 	end
 	
-	local height = math.min(#display_lines, 15) -- Max 15 lines
 	local width = math.min(max_width + 2, 50) -- Max 50 chars wide
 	local win_width = vim.api.nvim_win_get_width(0)
 	
@@ -199,7 +248,7 @@ local function update_header_tree()
 		tree_win_id = vim.api.nvim_open_win(tree_buf_id, false, {
 			relative = "win",
 			width = width,
-			height = height,
+			height = display_height,
 			row = 0,
 			col = win_width - width - 1,
 			style = "minimal",
@@ -214,7 +263,7 @@ local function update_header_tree()
 		vim.api.nvim_win_set_config(tree_win_id, {
 			relative = "win",
 			width = width,
-			height = height,
+			height = display_height,
 			row = 0,
 			col = win_width - width - 1,
 		})
