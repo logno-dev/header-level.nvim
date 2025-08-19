@@ -179,9 +179,6 @@ local function update_header_tree()
 	local total_lines = #tree_lines
 	local padding = 3
 	
-	-- DEBUG: Print to check if new code is running
-	print("SCROLLING CODE ACTIVE - Total lines:", total_lines, "Max height:", max_display_height)
-	
 	local start_line, end_line, display_height
 	
 	if total_lines <= max_display_height then
@@ -411,8 +408,35 @@ local function setup_autocommands()
 	})
 end
 
+-- Function to clear all cached state
+local function clear_cache()
+	-- Close and clear tree window
+	if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
+		vim.api.nvim_win_close(tree_win_id, true)
+	end
+	tree_win_id = nil
+	
+	-- Clear tree buffer
+	if tree_buf_id and vim.api.nvim_buf_is_valid(tree_buf_id) then
+		vim.api.nvim_buf_delete(tree_buf_id, { force = true })
+	end
+	tree_buf_id = nil
+	
+	-- Close floating window
+	if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
+		vim.api.nvim_win_close(floating_win_id, true)
+	end
+	floating_win_id = nil
+	
+	-- Clear namespace
+	vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
+end
+
 -- Public API
 function M.setup(opts)
+	-- Clear any existing state first
+	clear_cache()
+	
 	config = vim.tbl_deep_extend("force", config, opts or {})
 	setup_highlights()
 	setup_autocommands()
