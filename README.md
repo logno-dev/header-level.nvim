@@ -4,14 +4,14 @@ A lightweight Neovim plugin that displays the current markdown header level in y
 
 ## Features
 
-- 🎯 Shows the current header level based on cursor position
-- 📊 Statusline integration support
-- 👻 Optional virtual text display with multiple positioning options
-- 🌳 **NEW**: Header tree outline in top-right corner showing document structure
-- 🎨 Color-coded header levels with current section highlighting
-- ⚡ Automatic updates on cursor movement
-- 🎛️ Configurable update events
-- 🔄 Toggle functionality for all display modes
+-  Shows the current header level based on cursor position
+-  Statusline integration support
+-  Optional virtual text display with multiple positioning options
+-  **NEW**: Header tree outline in top-right corner showing document structure
+-  Color-coded header levels with current section highlighting
+-  Automatic updates on cursor movement
+-  Configurable update events
+-  Toggle functionality for all display modes
 
 ## Installation
 
