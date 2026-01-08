@@ -118,6 +118,12 @@ require("header-level").setup({
     h5 = "#6c757d", -- Gray
     h6 = "#495057", -- Darker gray
   },
+  -- Keymaps (set to false to disable, or provide custom mappings)
+  keymaps = {
+    toggle = "<leader>mh", -- Toggle plugin on/off
+    toggle_tree = "<leader>mt", -- Toggle header tree outline
+    toggle_virtual_text = "<leader>mv", -- Toggle virtual text display
+  },
 })
 ```
 
@@ -133,6 +139,7 @@ require("header-level").setup({
 | `inverted_colors` | boolean | `true` | Use colored backgrounds with dark foregrounds instead of colored foregrounds |
 | `colors` | table | See default | Color scheme for each header level using hex color codes |
 | `update_events` | table | `{ "CursorMoved", "CursorMovedI", "BufEnter" }` | Events that trigger header level updates |
+| `keymaps` | table | See default | Buffer-local keymaps for markdown files. Set individual keys to `false` to disable or provide custom mappings |
 
 ## Statusline Integration
 
@@ -205,12 +212,47 @@ gl.section.left[3] = {
 set statusline+=%{v:lua.vim.g.markdown_header_level}
 ```
 
+## Keymaps
+
+The plugin provides buffer-local keymaps for markdown files that you can use on-the-fly:
+
+| Keymap | Command | Description |
+|--------|---------|-------------|
+| `<leader>mh` | `:MarkdownHeaderToggle` | Toggle the plugin on/off |
+| `<leader>mt` | `:MarkdownHeaderTreeToggle` | Toggle the header tree outline display |
+| `<leader>mv` | `:MarkdownHeaderVirtualTextToggle` | Toggle virtual text display |
+
+### Customizing Keymaps
+
+You can customize keymaps in your setup configuration:
+
+```lua
+require("header-level").setup({
+  keymaps = {
+    toggle = "<leader>th", -- Change toggle keymap
+    toggle_tree = false, -- Disable tree toggle keymap
+    toggle_virtual_text = "<leader>tv", -- Custom virtual text toggle
+  },
+})
+```
+
+To disable all keymaps:
+
+```lua
+require("header-level").setup({
+  keymaps = false,
+})
+```
+
 ## Commands
+
+All features are also available as commands:
 
 | Command | Description |
 |---------|-------------|
 | `:MarkdownHeaderToggle` | Toggle the plugin on/off |
 | `:MarkdownHeaderTreeToggle` | Toggle the header tree outline display |
+| `:MarkdownHeaderVirtualTextToggle` | Toggle virtual text display |
 | `:MarkdownHeaderLevel` | Print the current header level |
 
 ## API
@@ -221,11 +263,18 @@ local header_level = require("header-level")
 -- Get current header level
 local level = header_level.get_header_level()
 
--- Toggle plugin
+-- Toggle plugin on/off
 header_level.toggle()
 
 -- Toggle header tree display
 header_level.toggle_tree()
+
+-- Toggle virtual text display
+header_level.toggle_virtual_text()
+
+-- Get colored header level info (for statusline integration)
+local info = header_level.get_colored_header_level()
+-- Returns: { text = "H2", highlight = "MarkdownHeaderLevel2", level = 2 }
 ```
 
 ## How It Works

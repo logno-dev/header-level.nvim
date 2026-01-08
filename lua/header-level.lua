@@ -19,6 +19,12 @@ local config = {
 		h5 = "#6c757d", -- Gray
 		h6 = "#495057", -- Darker gray
 	},
+	-- Keymaps (set to false to disable, or provide custom mappings)
+	keymaps = {
+		toggle = "<leader>mh", -- Toggle plugin on/off
+		toggle_tree = "<leader>mt", -- Toggle header tree outline
+		toggle_virtual_text = "<leader>mv", -- Toggle virtual text display
+	},
 }
 
 -- Global state
@@ -366,6 +372,47 @@ local function update_header_display()
 	vim.cmd("redrawstatus")
 end
 
+-- Function to setup keymaps
+local function setup_keymaps()
+	if not config.keymaps then
+		return
+	end
+	
+	local group = vim.api.nvim_create_augroup("MarkdownHeaderLevelKeymaps", { clear = true })
+	
+	vim.api.nvim_create_autocmd("FileType", {
+		group = group,
+		pattern = { "markdown", "mdx" },
+		callback = function()
+			local opts = { buffer = true, silent = true }
+			
+			if config.keymaps.toggle then
+				vim.keymap.set("n", config.keymaps.toggle, function()
+					require("header-level").toggle()
+					local status = config.enabled and "enabled" or "disabled"
+					vim.notify("Header level display " .. status, vim.log.levels.INFO)
+				end, vim.tbl_extend("force", opts, { desc = "Toggle header level display" }))
+			end
+			
+			if config.keymaps.toggle_tree then
+				vim.keymap.set("n", config.keymaps.toggle_tree, function()
+					require("header-level").toggle_tree()
+					local status = config.show_header_tree and "shown" or "hidden"
+					vim.notify("Header tree " .. status, vim.log.levels.INFO)
+				end, vim.tbl_extend("force", opts, { desc = "Toggle header tree outline" }))
+			end
+			
+			if config.keymaps.toggle_virtual_text then
+				vim.keymap.set("n", config.keymaps.toggle_virtual_text, function()
+					require("header-level").toggle_virtual_text()
+					local status = config.show_virtual_text and "shown" or "hidden"
+					vim.notify("Virtual text " .. status, vim.log.levels.INFO)
+				end, vim.tbl_extend("force", opts, { desc = "Toggle virtual text display" }))
+			end
+		end,
+	})
+end
+
 -- Function to setup autocommands
 local function setup_autocommands()
 	local group = vim.api.nvim_create_augroup("MarkdownHeaderLevel", { clear = true })
@@ -440,6 +487,7 @@ function M.setup(opts)
 	config = vim.tbl_deep_extend("force", config, opts or {})
 	setup_highlights()
 	setup_autocommands()
+	setup_keymaps()
 end
 
 function M.get_header_level()
@@ -487,11 +535,26 @@ function M.toggle_tree()
 	update_header_tree()
 end
 
+function M.toggle_virtual_text()
+	config.show_virtual_text = not config.show_virtual_text
+	if config.show_virtual_text then
+		update_header_display()
+	else
+		-- Clear virtual text and floating window
+		vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
+		if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
+			vim.api.nvim_win_close(floating_win_id, true)
+			floating_win_id = nil
+		end
+	end
+end
+
 -- Commands
-vim.api.nvim_create_user_command("MarkdownHeaderToggle", M.toggle, {})
-vim.api.nvim_create_user_command("MarkdownHeaderTreeToggle", M.toggle_tree, {})
+vim.api.nvim_create_user_command("MarkdownHeaderToggle", M.toggle, { desc = "Toggle header level display" })
+vim.api.nvim_create_user_command("MarkdownHeaderTreeToggle", M.toggle_tree, { desc = "Toggle header tree outline" })
+vim.api.nvim_create_user_command("MarkdownHeaderVirtualTextToggle", M.toggle_virtual_text, { desc = "Toggle virtual text display" })
 vim.api.nvim_create_user_command("MarkdownHeaderLevel", function()
 	print(M.get_header_level())
-end, {})
+end, { desc = "Print current header level" })
 
 return M
