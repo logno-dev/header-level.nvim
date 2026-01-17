@@ -439,22 +439,36 @@ local function setup_autocommands()
 	vim.api.nvim_create_autocmd("BufLeave", {
 		group = group,
 		pattern = { "*.md", "*.mdx" },
+		callback = clear_display,
+	})
+
+	-- Clean up when entering non-markdown buffers
+	vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
+		group = group,
 		callback = function()
-			header_level = ""
-			vim.g.markdown_header_level = ""
-			vim.g.markdown_header_level_hl = ""
-			vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
-			if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
-				vim.api.nvim_win_close(floating_win_id, true)
-				floating_win_id = nil
+			local filetype = vim.bo.filetype
+			if filetype ~= "markdown" and filetype ~= "mdx" then
+				clear_display()
 			end
-			if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
-				vim.api.nvim_win_close(tree_win_id, true)
-				tree_win_id = nil
-			end
-			vim.cmd("redrawstatus")
 		end,
 	})
+end
+
+-- Function to clear display state
+local function clear_display()
+	header_level = ""
+	vim.g.markdown_header_level = ""
+	vim.g.markdown_header_level_hl = ""
+	vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
+	if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
+		vim.api.nvim_win_close(floating_win_id, true)
+		floating_win_id = nil
+	end
+	if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
+		vim.api.nvim_win_close(tree_win_id, true)
+		tree_win_id = nil
+	end
+	vim.cmd("redrawstatus")
 end
 
 -- Function to clear all cached state
@@ -517,18 +531,7 @@ function M.toggle()
 	if config.enabled then
 		update_header_display()
 	else
-		header_level = ""
-		vim.g.markdown_header_level = ""
-		vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
-		if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
-			vim.api.nvim_win_close(floating_win_id, true)
-			floating_win_id = nil
-		end
-		if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
-			vim.api.nvim_win_close(tree_win_id, true)
-			tree_win_id = nil
-		end
-		vim.cmd("redrawstatus")
+		clear_display()
 	end
 end
 
