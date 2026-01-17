@@ -413,6 +413,23 @@ local function setup_keymaps()
 	})
 end
 
+-- Function to clear display state
+local function clear_display()
+	header_level = ""
+	vim.g.markdown_header_level = ""
+	vim.g.markdown_header_level_hl = ""
+	vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
+	if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
+		vim.api.nvim_win_close(floating_win_id, true)
+		floating_win_id = nil
+	end
+	if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
+		vim.api.nvim_win_close(tree_win_id, true)
+		tree_win_id = nil
+	end
+	vim.cmd("redrawstatus")
+end
+
 -- Function to setup autocommands
 local function setup_autocommands()
 	local group = vim.api.nvim_create_augroup("MarkdownHeaderLevel", { clear = true })
@@ -452,23 +469,6 @@ local function setup_autocommands()
 			end
 		end,
 	})
-end
-
--- Function to clear display state
-local function clear_display()
-	header_level = ""
-	vim.g.markdown_header_level = ""
-	vim.g.markdown_header_level_hl = ""
-	vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
-	if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
-		vim.api.nvim_win_close(floating_win_id, true)
-		floating_win_id = nil
-	end
-	if tree_win_id and vim.api.nvim_win_is_valid(tree_win_id) then
-		vim.api.nvim_win_close(tree_win_id, true)
-		tree_win_id = nil
-	end
-	vim.cmd("redrawstatus")
 end
 
 -- Function to clear all cached state
