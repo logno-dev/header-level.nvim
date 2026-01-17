@@ -442,6 +442,7 @@ local function setup_autocommands()
 		callback = function()
 			header_level = ""
 			vim.g.markdown_header_level = ""
+			vim.g.markdown_header_level_hl = ""
 			vim.api.nvim_buf_clear_namespace(0, namespace_id, 0, -1)
 			if floating_win_id and vim.api.nvim_win_is_valid(floating_win_id) then
 				vim.api.nvim_win_close(floating_win_id, true)
@@ -451,6 +452,7 @@ local function setup_autocommands()
 				vim.api.nvim_win_close(tree_win_id, true)
 				tree_win_id = nil
 			end
+			vim.cmd("redrawstatus")
 		end,
 	})
 end
