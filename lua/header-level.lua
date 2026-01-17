@@ -469,6 +469,18 @@ local function setup_autocommands()
 			end
 		end,
 	})
+
+	-- Ensure cleanup after filetype detection
+	vim.api.nvim_create_autocmd("FileType", {
+		group = group,
+		pattern = "*",
+		callback = function()
+			local filetype = vim.bo.filetype
+			if filetype ~= "markdown" and filetype ~= "mdx" then
+				clear_display()
+			end
+		end,
+	})
 end
 
 -- Function to clear all cached state
